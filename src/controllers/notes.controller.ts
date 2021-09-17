@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, HttpStatus, Param, Post, Put, Res } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, HttpCode, HttpStatus, InternalServerErrorException, NotFoundException, Param, Post, Put, Res } from '@nestjs/common';
 import { NoteDto } from '../dtos/note.dtos';
 import { NoteService } from '../services/note.service';
 
@@ -7,82 +7,94 @@ export class NotesController {
     constructor(private noteService: NoteService) { }
 
     @Get()
+    @HttpCode(HttpStatus.OK)
     async getAllNotes(@Res() res):Promise<Response> {
-        try {
-            const notes = await this.noteService.getAllNotes()
-            return res.status(HttpStatus.OK).json({
-                notes
-            })
-        } catch (error) {
-            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-                msg: 'Error in the server',
-            })
-        }
+        const notes = await this.noteService.getAllNotes()
+
+        if(!notes) throw new NotFoundException('No se encontro ninguna nota');
+
+        return res.json(
+            notes
+        )
 
     }
 
     @Get('/:id')
-    async getNoteById(@Param('id') id, @Res() res):Promise<Response> {
-        try {
-            const note = await this.noteService.getNoteById(id)
-            return res.status(HttpStatus.OK).json({
-                note
-            })
-        } catch (error) {
-            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-                msg: 'Error in the server',
-            })
-        }
-
+    @HttpCode(HttpStatus.OK)
+    async getNoteById(@Param('id') idNote, @Res() res):Promise<Response> {
+        const checkId: RegExpMatchArray | null = idNote.match(/^[0-9a-fA-F]{24}$/)
+        
+        if(!checkId) throw new NotFoundException(`El id ${idNote} no es valido`);
+        
+        const note = await this.noteService.getNoteById(idNote)
+        if(!note) throw new NotFoundException('No se encontro ninguna nota');
+        
+        return res.json(
+            note
+        )
     }
 
     @Post()
-    async createNote(@Res() res, @Body() noteDto: NoteDto, ):Promise<Response> {
+    @HttpCode(HttpStatus.CREATED)
+    async createNote(@Res() res, @Body() payload: NoteDto, ):Promise<Response> {
+        const {title, description, done} = payload
+        if(!title || !description|| !done) throw new BadRequestException('Verfica los datos algunos son necesarios');
+        
         try {
-            const note = await this.noteService.createNote(noteDto)
-            return res.status(HttpStatus.CREATED).json({
-                msg: 'Note created',
-                note
-            })
-        } catch (error) {
-            return res.status(HttpStatus.BAD_REQUEST).json({
-                msg: 'Error in the server',
-            })
-        }
+            const note = await this.noteService.createNote(payload)
+            if(!note) throw new BadRequestException('Error al crear la nota');
 
+            return res.json(
+                note
+            )
+        } catch (error) {
+            throw new InternalServerErrorException('Error con el servidor intenta más tarde');
+        }
     }
 
     @Put('/:id')
-    async updateNote(@Param('id') id, @Res() res, @Body() noteDto: NoteDto, ):Promise<Response> {
+    @HttpCode(HttpStatus.OK)
+    async updateNote(@Param('id') idNote, @Res() res, @Body() payload: NoteDto, ):Promise<Response> {
+        const checkId: RegExpMatchArray | null = idNote.match(/^[0-9a-fA-F]{24}$/)
+        const {title, description, done} = payload
+        
+        if(!checkId) throw new NotFoundException(`El id ${idNote} no es valido`);
+        
+        if(!title || !description|| !done) throw new BadRequestException('Verfica los datos algunos son necesarios');
+
+        const findNote = await this.noteService.getNoteById(idNote)
+
+        if(!findNote) throw new NotFoundException('No se encontro la nota para editar');
+
         try {
-            const note = await this.noteService.updateNote(id, noteDto)
-            return res.status(HttpStatus.OK).json({
-                msg: 'Updated note',
+            const note = await this.noteService.updateNote(idNote, payload)
+            return res.json(
                 note
-            })
+            )
         } catch (error) {
-            return res.status(HttpStatus.BAD_REQUEST).json({
-                msg: 'Error in the server',
-            })
+            throw new InternalServerErrorException('Error con el servidor intenta más tarde');
         }
 
     }
 
-
     @Delete('/:id')
-    async deleteNote(@Res() res, @Param('id') id):Promise<Response> {
-        try {
-            const note = await this.noteService.deleteNote(id)
+    @HttpCode(HttpStatus.OK)
+    async deleteNote(@Res() res, @Param('id') idNote):Promise<Response> {
+        const checkId: RegExpMatchArray | null = idNote.match(/^[0-9a-fA-F]{24}$/)
+        if(!checkId) throw new NotFoundException(`El id ${idNote} no es valido`);
 
-            return note === null 
-            ? res.status(HttpStatus.BAD_REQUEST).json({msg: 'Note could not be removed'}) 
-            : res.status(HttpStatus.OK).json({msg:'Note has been removed'})
+        try {
+            const findNote = await this.noteService.getNoteById(idNote)
+            
+            if(!findNote) throw new NotFoundException('No se encontro la nota para editar');
+            
+            const note = await this.noteService.deleteNote(idNote)
+            return res.json(
+                {msg: 'Se elimino la nota'}
+            )
 
         } catch (error) {
-            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-                msg: 'Error in the server',
-            })
+            throw new InternalServerErrorException('Error con el servidor intenta más tarde');
         }
-
     }
 }
