@@ -6,10 +6,11 @@ import { NotesController } from './controllers/notes.controller';
 import { NotesModule } from './modules/notes.module';
 
 @Module({
-  imports: [MongooseModule.forRoot('mongodb://localhost/notes', {
-    useNewUrlParser: true
-  }),
-    NotesModule
+  imports: [
+    MongooseModule.forRoot('mongodb://localhost/notes', {
+      useNewUrlParser: true,
+    }),
+    NotesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
