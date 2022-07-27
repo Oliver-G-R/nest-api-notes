@@ -1,5 +1,5 @@
-import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
-import { Document } from "mongoose";
+import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose"
+import { Document } from "mongoose"
 
 export type NoteDocument = Note & Document;
 
@@ -15,12 +15,12 @@ export class Note {
   done: boolean;
 }
 
-export const NoteSchema = SchemaFactory.createForClass(Note);
+export const NoteSchema = SchemaFactory.createForClass(Note)
 
 NoteSchema.set("toJSON", {
   transform: function (_, ret) {
-    ret.id = ret._id;
-    delete ret._id;
-    delete ret.__v;
+    ret.id = ret._id
+    delete ret._id
+    delete ret.__v
   }
-});
+})
