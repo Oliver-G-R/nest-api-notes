@@ -6,13 +6,13 @@ export type NoteDocument = Note & Document;
 @Schema()
 export class Note {
   @Prop({ required: true })
-  title: string;
+  title: string
 
   @Prop({ required: true })
-  description: string;
+  description: string
 
   @Prop({ required: true })
-  done: boolean;
+  done: boolean
 }
 
 export const NoteSchema = SchemaFactory.createForClass(Note)
