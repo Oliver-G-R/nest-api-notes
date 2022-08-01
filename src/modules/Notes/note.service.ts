@@ -2,24 +2,32 @@ import { NoteDto } from "./dtos/note.dtos"
 import { BadRequestException, Injectable } from "@nestjs/common"
 import { InjectModel } from "@nestjs/mongoose"
 import { isValidObjectId, Model } from "mongoose"
-import { Note } from './schema/NoteSchema'
+import { Note } from "./schema/NoteSchema"
+import { NotesGateway } from "./note.gateway"
 
 @Injectable()
 export class NoteService {
-  constructor(@InjectModel("Note") private readonly noteModel: Model<Note>) {}
+  constructor(
+    @InjectModel("Note") private readonly noteModel: Model<Note>,
+    private readonly notesGateway: NotesGateway
+  ) {}
 
   async createNote(note: NoteDto): Promise<Note> {
     const newNote = new this.noteModel(note)
-    return await newNote.save()
+    const noteSaved = await newNote.save()
+    this.notesGateway.createNote(noteSaved)
+    return noteSaved
   }
 
-  async deleteNote(id: string): Promise<{message: string}> {
+  async deleteNote(id: string): Promise<{ message: string }> {
     if (!isValidObjectId(id)) throw new BadRequestException("id is not valid")
 
     const findNote = await this.noteModel.findById(id)
     if (!findNote) throw new BadRequestException("Note not found")
 
     await findNote.remove()
+
+    this.notesGateway.deleteNote(findNote.id)
 
     return {
       message: "Note deleted"
@@ -44,7 +52,8 @@ export class NoteService {
     const findNote = await this.noteModel.findById(id)
     if (!findNote) throw new BadRequestException("Note not found")
 
-    const note = await findNote.updateOne(noteUpdate, { new: true })
+    const note = await this.noteModel.findByIdAndUpdate(id, noteUpdate, { new: true })
+    this.notesGateway.updateNote(note)
     return note
   }
 }

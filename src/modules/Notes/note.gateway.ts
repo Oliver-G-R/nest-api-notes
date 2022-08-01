@@ -1,16 +1,43 @@
-import { ConnectedSocket, MessageBody, SubscribeMessage, WebSocketGateway } from "@nestjs/websockets"
-import { NestGateway } from "@nestjs/websockets/interfaces/nest-gateway.interface"
-import { NoteService } from './note.service'
+import { NOTE_ACTIONS } from "./actions/notes.actions"
+import { Note } from "./schema/NoteSchema"
+import {
+  WebSocketGateway,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
+  OnGatewayInit,
+  WebSocketServer
+} from "@nestjs/websockets"
 
-@WebSocketGateway()
-export class NotesGateway implements NestGateway {
-  constructor(private noteService:NoteService) {}
+@WebSocketGateway({
+  cors: true,
+  namespace: "notes"
+})
+export class NotesGateway
+  implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit
+{
+  @WebSocketServer() private server
 
-  afterInit(server: any) { console.log("firstMessage") }
+  handleConnection(client: any, ...args: any[]) {
+    console.log("handleConnection")
+  }
 
-  handleConnection(socket: any) {
-    console.log("connected")
-   }
+  handleDisconnect(client: any) {
+    console.log("handleDisconnect")
+  }
 
-  handleDisconnect(socket: any) { console.log("disconnected") }
+  afterInit(server: any) {
+    console.log("afterInit")
+  }
+
+  createNote(note: Note) {
+    this.server.emit(NOTE_ACTIONS.CREATE_NOTE, note)
+  }
+
+  updateNote(note: Note) {
+    this.server.emit(NOTE_ACTIONS.UPDATE_NOTE, note)
+  }
+
+  deleteNote(id: string) {
+    this.server.emit(NOTE_ACTIONS.DELETE_NOTE, id)
+  }
 }

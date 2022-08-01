@@ -6,6 +6,7 @@ export class NoteDto {
   readonly title: string
 
   @IsString()
+  @IsNotEmpty()
   readonly description: string
 
   @IsBoolean()
